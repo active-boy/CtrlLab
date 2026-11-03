@@ -18,7 +18,9 @@ def parse_expr(value, latex=False):
 
 
 def result(expr):
-    return {'latex': sp.latex(expr), 'expression': str(expr)}
+    latex = sp.latex(expr).replace(r'\theta', 'u')
+    expression = str(expr).replace('Heaviside(t)', 'u(t)')
+    return {'latex': latex, 'expression': expression}
 
 
 @app.get('/')
@@ -119,14 +121,23 @@ def time_domain():
     degree = den.degree()
     order_info = '一阶系统' if degree == 1 else ('二阶系统' if degree == 2 else '高阶系统')
     special = []
+    special_latex = []
     if degree == 1:
         pole = sp.solve(den.as_expr(), s)[0]
         special = [f'一阶极点 p = {pole}', f'时间常数 τ = {-1/pole}', '单位阶跃无超调；稳定一阶系统的 2% 调节时间近似为 4τ，5% 调节时间近似为 3τ。']
+        a1,a0=den.all_coeffs()
+        special_latex=[r'p=-\frac{a_0}{a_1}',r'\tau=\frac{a_1}{a_0}',r't_s(2\%)\approx4\tau',r't_s(5\%)\approx3\tau']
     elif degree == 2:
         a,b,c = den.all_coeffs()
         wn = sp.sqrt(c/a); zeta = sp.simplify(b/(2*sp.sqrt(a*c)))
         special = [f'自然频率 ω_n = {wn}', f'阻尼比 ζ = {zeta}', '欠阻尼二阶系统：振荡频率 ω_d = ω_n√(1−ζ²)，超调量 M_p = exp(−πζ/√(1−ζ²))×100%。', f'按所选误差带近似调节时间 t_s ≈ −ln({band})/(ζω_n)。']
-    return jsonify({'order_info': order_info, 'special_rules': special, 'settling_band': band, 'routh': [[str(sp.simplify(v)) for v in row] for row in rows], 'first_column': [str(x) for x in first],
+        special_latex=[r'\omega_n=\sqrt{\frac{c}{a}}',r'\zeta=\frac{b}{2\sqrt{ac}}',r'\omega_d=\omega_n\sqrt{1-\zeta^2}',r'M_p=e^{-\frac{\pi\zeta}{\sqrt{1-\zeta^2}}}\times100\%',r't_s\approx-\frac{\ln('+str(band)+r')}{\zeta\omega_n}']
+    response_curve = []
+    try:
+        response_curve = [{'t': float(tv[i]), 'y': float(y[i])} for i in range(0, len(tv), max(1, len(tv)//500))]
+    except Exception:
+        pass
+    return jsonify({'order_info': order_info, 'special_rules': special, 'special_rules_latex':special_latex, 'steps_latex':[r'T(s)='+sp.latex(loop),r'\frac{E(s)}{R(s)}='+sp.latex(error),r'e_{ss}=\lim_{s\to0}sE(s)='+sp.latex(ess)], 'settling_band': band, 'response_curve': response_curve, 'routh': [[str(sp.simplify(v)) for v in row] for row in rows], 'first_column': [str(x) for x in first],
         'rhp_poles': rhp, 'stable': stable, 'poles': [str(x) for x in poles], 'steady_error': str(ess),
         'response': result(sp.simplify(response)), 'metrics': metrics,
         'steps': [f'闭环传递函数 T(s) = {sp.sstr(loop)}', f'误差传递关系 E(s)/R(s) = {sp.sstr(error)}',
@@ -252,6 +263,22 @@ def root_locus():
         '分离/会合点候选解由 dK(s)/ds=0 求出，并仅保留实数且 K≥0 的点。',
         '起始角、终止角由极点/零点向量角度和角度条件计算；与虚轴交点由闭环极点扫描估算。',
         '闭环极点之和由特征多项式系数的韦达关系计算。']})
+
+
+@app.post('/api/root-current')
+def root_current():
+    import numpy as np
+    data=request.get_json(force=True)
+    G=sp.cancel(parse_expr(data.get('expression'),data.get('latex',False)))
+    n,d=sp.fraction(G); pn,pd=sp.Poly(n,s),sp.Poly(d,s)
+    if any(c.free_symbols for c in pn.all_coeffs()+pd.all_coeffs()):
+        raise ValueError('请先把环节参数替换为数值。')
+    nc=np.array([float(sp.N(c)) for c in pn.all_coeffs()])
+    dc=np.array([float(sp.N(c)) for c in pd.all_coeffs()])
+    nc=np.pad(nc,(len(dc)-len(nc),0))
+    sign=1 if data.get('feedback')=='negative' else -1
+    roots=np.roots(dc+sign*float(data.get('gain',0))*nc)
+    return jsonify({'current_poles':[{'re':float(z.real),'im':float(z.imag)} for z in roots]})
 
 
 if __name__ == '__main__':
