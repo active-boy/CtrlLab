@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend/ ./backend/
 COPY --from=frontend-build /build/frontend/dist ./frontend/dist
 EXPOSE 5000
-CMD ["python", "backend/app.py"]
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 4 --timeout 120 backend.app:app"]
