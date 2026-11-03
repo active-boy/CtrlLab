@@ -2,6 +2,8 @@ import React,{useState,useEffect,useRef} from 'react';
 import{createRoot}from'react-dom/client';
 import'mathlive';import'./style.css';
 
+const API_BASE=(import.meta.env.VITE_API_BASE_URL||'').replace(/\/+$/,'');
+
 function App(){
  const [tab,setTab]=useState('laplace'),[section,setSection]=useState('steady'),[mode,setMode]=useState('laplace');
  const [output,setOutput]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[lastInput,setLastInput]=useState('');
@@ -22,10 +24,10 @@ function App(){
   else if(isTime){url='/api/time-domain';payload={expression:latex,latex:true,input:inputType,feedback,settling_band:band}}
   else if(tab==='laplace'){url='/api/transform';payload={expression:latex,latex:true,mode}}
   else{url='/api/transfer';payload={expression:latex,latex:true}}
-  const r=await fetch((import.meta.env.VITE_API_BASE_URL||'')+url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const r=await fetch(API_BASE+url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const d=await r.json();if(!r.ok)throw Error(d.error);setOutput(d)
  }catch(e){setError(e.message)}finally{setBusy(false)}}
- useEffect(()=>{if(tab!=='root'||!output?.tracks||!lastInput)return;let dead=false;const id=setTimeout(async()=>{try{const r=await fetch((import.meta.env.VITE_API_BASE_URL||'')+'/api/root-current',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expression:lastInput,latex:true,feedback:rootFeedback,gain})});const d=await r.json();if(r.ok&&!dead)setOutput(p=>p?({...p,current_gain:gain,current_poles:d.current_poles}):p)}catch{}},100);return()=>{dead=true;clearTimeout(id)}},[gain,rootFeedback,tab,lastInput,output?.tracks]);
+ useEffect(()=>{if(tab!=='root'||!output?.tracks||!lastInput)return;let dead=false;const id=setTimeout(async()=>{try{const r=await fetch(API_BASE+'/api/root-current',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expression:lastInput,latex:true,feedback:rootFeedback,gain})});const d=await r.json();if(r.ok&&!dead)setOutput(p=>p?({...p,current_gain:gain,current_poles:d.current_poles}):p)}catch{}},100);return()=>{dead=true;clearTimeout(id)}},[gain,rootFeedback,tab,lastInput,output?.tracks]);
  const pickSection=x=>{setSection(x);setOutput(null);setError('')};
  return <div className="shell"><aside><div className="brand">◈ <b>CtrlLab</b><small>CONTROL SYSTEMS LAB</small></div><div className="navtitle">工作台</div>
   <button className={'nav '+(!isTime&&!isFreq&&!isRoot?'active':'')} onClick={()=>{setTab('laplace');setOutput(null)}}>⌘　函数处理</button>

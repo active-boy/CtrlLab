@@ -21,7 +21,11 @@ CtrlLab 是一个面向自动控制原理学习的 H5 交互式分析平台。�
 
 ## Netlify 部署前端
 
-Netlify 使用仓库根目录的 `netlify.toml` 自动构建 H5 前端。设置环境变量 `VITE_API_BASE_URL` 为已部署 Flask 服务的 HTTPS 根地址（不要在末尾加 `/`）。Flask 服务需允许 Netlify 域名跨域访问。GitHub 仓库本身不托管 Flask 运行进程。
+在 Netlify 中选择 GitHub 仓库 `active-boy/CtrlLab`，发布分支选 `main`。仓库根目录的 `netlify.toml` 已配置前端目录、构建命令、Node.js 20 和 SPA 回退规则。
+
+在 Netlify 的站点环境变量中设置 `VITE_API_BASE_URL`，值为已部署 Flask 服务的 HTTPS 根地址，例如 `https://ctrllab-xxxx.service.tcloudbase.com`；不要在末尾添加 `/`。此变量必须在构建时可用，设置或修改后需重新部署。变量名和值格式见 `frontend/.env.example`。Netlify 构建不会自动读取仓库中的 `.env` 文件，因此不要提交包含真实服务地址或密钥的本地 `.env` 文件。
+
+Flask 已启用跨域请求。若 API 域名尚未创建或公网访问未开启，页面虽可部署，计算请求仍无法成功。Netlify 只托管 H5 前端，Flask API 仍由微信云托管运行。
 
 ## 微信云托管
 
