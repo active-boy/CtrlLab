@@ -22,3 +22,9 @@ CtrlLab 是一个面向自动控制原理学习的 H5 交互式分析平台。�
 ## Netlify 部署前端
 
 Netlify 使用仓库根目录的 `netlify.toml` 自动构建 H5 前端。设置环境变量 `VITE_API_BASE_URL` 为已部署 Flask 服务的 HTTPS 根地址（不要在末尾加 `/`）。Flask 服务需允许 Netlify 域名跨域访问。GitHub 仓库本身不托管 Flask 运行进程。
+
+## 微信云托管
+
+仓库根目录的 `Dockerfile` 会先构建 H5，再运行 Flask，并由同一个服务提供网页和 `/api` 接口。监听端口默认为 5000，可通过 `PORT` 环境变量调整。
+
+在微信云托管创建服务后，进入服务详情并新建版本，选择“代码库拉取”，授权 GitHub 并选择 `active-boy/CtrlLab` 的 `main` 分支。构建目录选仓库根目录 `.`，Dockerfile 填 `Dockerfile`，容器端口填 `5000)。首次部署建议先创建版本，查看构建和运行日志后再开放流量。

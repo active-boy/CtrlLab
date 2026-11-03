@@ -1,10 +1,12 @@
-from flask import Flask, jsonify, request
+import os
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import sympy as sp
 from sympy.parsing.latex import parse_latex
 
 app = Flask(__name__)
 CORS(app)
+WEB_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist'))
 s, t, K = sp.symbols('s t K')
 
 
@@ -17,6 +19,21 @@ def parse_expr(value, latex=False):
 
 def result(expr):
     return {'latex': sp.latex(expr), 'expression': str(expr)}
+
+
+@app.get('/')
+def home():
+    return send_from_directory(WEB_DIST, 'index.html')
+
+
+@app.get('/<path:filename>')
+def frontend_files(filename):
+    if filename.startswith('api/'):
+        return jsonify({'error': '接口不存在。'}), 404
+    requested = os.path.join(WEB_DIST, filename)
+    if os.path.isfile(requested):
+        return send_from_directory(WEB_DIST, filename)
+    return send_from_directory(WEB_DIST, 'index.html')
 
 
 @app.errorhandler(Exception)
@@ -238,4 +255,4 @@ def root_locus():
 
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '5000')), debug=False)
