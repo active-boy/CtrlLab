@@ -1,0 +1,2 @@
+# CtrlLab
+基于Flask和Mathlive的自动控制原理交互式可视化分析平台
