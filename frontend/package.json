@@ -1,0 +1,1 @@
+{"scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","preview":"vite preview --host 0.0.0.0"},"dependencies":{"vite":"^6.0.0","react":"^19.0.0","react-dom":"^19.0.0","mathlive":"^0.104.0","lucide-react":"^0.468.0"},"devDependencies":{}}
